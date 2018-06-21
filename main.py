@@ -102,6 +102,7 @@ def main(_):
 
   voc_size = len(parser.vocabulary) + 1
 
+
   if FLAGS.task_name == 'conditioned_classification':
     # Get the function for building the model, and the encoding to use.
     make_model, encoding = conditioned_classification_models.MODELS.get(

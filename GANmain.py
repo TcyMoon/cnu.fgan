@@ -192,7 +192,7 @@ class DCGAN():
         self.img_rows = 28
         self.img_cols = 28
         self.channels = 1
-        self.img_shape = (512,)
+        self.img_shape = (64,512)
         self.latent_dim = 100
         self.voc_size = 0
 
@@ -217,7 +217,7 @@ class DCGAN():
 
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
-
+        print (img.get_shape().as_list())
         # The discriminator takes generated images as input and determines validity
         valid = self.discriminator(img)
 
@@ -231,18 +231,21 @@ class DCGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(output_dim=256, input_dim=voc_size, input_length=max_len))
+        #model.add(Embedding(input_dim=voc_size,output_dim=256, input_length=max_len))
         # model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.img_shape))
         # model.add(Reshape((7, 7, 128)))
         #model.add(UpSampling2D())
-        model.add(Conv1D(256, kernel_size=3, padding="same"))
+        model.add(Conv1D(128, kernel_size=3, input_shape=(self.latent_dim,),padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         #model.add(UpSampling1D())
-        model.add(Conv1D(256, kernel_size=3, padding="same"))
+        model.add(Conv1D(128, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(Conv1D(256, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(Conv1D(512, kernel_size=3, padding="same"))
         model.add(Activation("tanh"))
 
         model.summary()
@@ -261,7 +264,7 @@ class DCGAN():
         # img = layers.Dropout(dropout)(x)
         #prediction = layers.Dense(1, activation='sigmoid')(x)
 
-        noise = Input(shape=self.img_shape)
+        noise = Input(shape=(self.latent_dim,None))
         img = model(noise)
 
         model = Model(noise, img)
@@ -273,16 +276,17 @@ class DCGAN():
 
         model = Sequential()
 
-        model.add(Embedding(output_dim=256,input_dim=voc_size,input_length=max_len))
-        model.add(Conv1D(256, kernel_size=7, strides=1, input_shape=self.img_shape, padding="same"))
+        #model.add(Embedding(output_dim=512,input_dim=voc_size,input_length=max_len))
+        #model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
+        model.add(Conv1D(32, kernel_size=3, strides=1, padding="same",input_shape=(64, 512)))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv1D(256, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv1D(64, kernel_size=3, strides=1, padding="same"))
         #model.add(ZeroPadding1D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv1D(256, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv1D(128, kernel_size=3, strides=1, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -295,13 +299,12 @@ class DCGAN():
 
         model.summary()
 
-        img = Input(shape=self.img_shape)
+        img = Input(shape=(64,512))
         validity = model(img)
 
         return Model(img, validity)
 
     def train(self, epochs, batch_size, save_interval=50):
-
 
         # (valencode, _), (_, _) = parser.draw_batch_of_steps_in_order(self, conjecture_index=0,
         #                                                     step_index=0,
@@ -322,7 +325,7 @@ class DCGAN():
 
         for epoch in range(epochs):
             X_train, _ = self.parser.draw_random_batch_of_steps(
-                'train', 'integer', FLAGS.max_len, batch_size)
+                'train', 'integer', 256, batch_size)
             self.voc_size = len(self.parser.vocabulary) + 1
             # ---------------------
             #  Train Discriminator
@@ -333,7 +336,7 @@ class DCGAN():
             imgs = X_train[idx]
 
             # Sample noise and generate a batch of new images
-            noise = np.random.normal(0, 1, (batch_size, FLAGS.max_len))
+            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
             gen_imgs = self.generator(self.voc_size,FLAGS.max_len).predict(noise,32)
 
             # Train the discriminator (real classified as ones and generated as zeros)
