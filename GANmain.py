@@ -30,7 +30,7 @@ from __future__ import print_function
 import json
 import logging
 import os
-import keras
+from keras import layers
 import tensorflow as tf
 
 import conditioned_classification_models
@@ -41,9 +41,10 @@ from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
+from keras.layers.convolutional import UpSampling2D, Conv2D,Conv1D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
+from keras.layers.embeddings import Embedding
 import matplotlib.pyplot as plt
 import sys
 #
@@ -51,7 +52,7 @@ import numpy as np
 #
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
-                           'hol-ml-dataset',
+                           '/Users/chenyangtang/python/holstep',
                            'Directory where the raw data is located.')
 tf.app.flags.DEFINE_string('logdir',
                            '/tmp/hol',
@@ -191,19 +192,23 @@ class DCGAN():
         self.img_rows = 28
         self.img_cols = 28
         self.channels = 1
-        self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        self.img_shape = (512,)
         self.latent_dim = 100
 
         optimizer = Adam(0.0002, 0.5)
+        self.parser = data_utils.DataParser(FLAGS.source_dir,
+                                       use_tokens=False,
+                                       verbose=FLAGS.verbose)
+        voc_size = len(parser.vocabulary) + 1
 
         # Build and compile the discriminator
-        self.discriminator = self.build_discriminator()
+        self.discriminator = self.build_discriminator(voc_size,FLAGS.max_len)
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
         # Build the generator
-        self.generator = self.build_generator()
+        self.generator = self.build_generator(voc_size, FLAGS.max_len, dropout=0.5)
 
         # The generator takes noise as input and generates imgs
         z = Input(shape=(100,))
@@ -220,47 +225,66 @@ class DCGAN():
         self.combined = Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-    def build_generator(self):
+    def build_generator(self,voc_size, max_len, dropout=0.5):
+
+        #model = Sequential()
+        #
+        #
+        # model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
+        # model.add(Reshape((7, 7, 128)))
+        # model.add(UpSampling2D())
+        # model.add(Conv2D(128, kernel_size=3, padding="same"))
+        # model.add(BatchNormalization(momentum=0.8))
+        # model.add(Activation("relu"))
+        # model.add(UpSampling2D())
+        # model.add(Conv2D(64, kernel_size=3, padding="same"))
+        # model.add(BatchNormalization(momentum=0.8))
+        # model.add(Activation("relu"))
+        # model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
+        # model.add(Activation("tanh"))
+        #
+        # model.summary()
+        noise = layers.Input(shape=(max_len,), dtype='int32')
+        x = layers.Embedding(
+            output_dim=256,
+            input_dim=voc_size,
+            input_length=max_len)(noise)
+        x = layers.Convolution1D(256, 7, activation='relu')(x)
+        x = layers.MaxPooling1D(3)(x)
+        x = layers.Convolution1D(256, 7, activation='relu')(x)
+        x = layers.MaxPooling1D(5)(x)
+        embedded_statement = layers.LSTM(256)(x)
+
+        x = layers.Dense(256, activation='relu')(embedded_statement)
+        img = layers.Dropout(dropout)(x)
+        #prediction = layers.Dense(1, activation='sigmoid')(x)
+
+        # noise = Input(shape=(self.latent_dim,))
+        # img = model(noise)
+
+        model = Model(noise, img)
+        return model
+
+        #return Model(noise, img)
+
+    def build_discriminator(self,voc_size, max_len, dropout=0.5):
 
         model = Sequential()
 
-        model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
-        model.add(Reshape((7, 7, 128)))
-        model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
-        model.add(Activation("tanh"))
-
-        model.summary()
-
-        noise = Input(shape=(self.latent_dim,))
-        img = model(noise)
-
-        return Model(noise, img)
-
-    def build_discriminator(self):
-
-        model = Sequential()
-
-        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(Embedding(output_dim=256,input_dim=voc_size,input_length=max_len))
+        model.add(Conv1D(256, kernel_size=7, strides=1, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(ZeroPadding2D(padding=((0,1),(0,1))))
+        model.add(Conv1D(256, kernel_size=3, strides=1, padding="same"))
+        #model.add(ZeroPadding1D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv1D(256, kernel_size=3, strides=1, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv1D(256, kernel_size=3, strides=1, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -275,22 +299,20 @@ class DCGAN():
         return Model(img, validity)
 
     def train(self, epochs, batch_size, save_interval=50):
-        parser = data_utils.DataParser(FLAGS.source_dir,
-                                       use_tokens=use_tokens,
-                                       verbose=FLAGS.verbose)
-        trainencode, _ = parser.draw_random_batch_of_steps(
-          'train', encoding, FLAGS.max_len, batch_size)
+
+        X_train, _ = self.parser.draw_random_batch_of_steps(
+          'train', 'integer', FLAGS.max_len, batch_size)
         # (valencode, _), (_, _) = parser.draw_batch_of_steps_in_order(self, conjecture_index=0,
         #                                                     step_index=0,
         #                                                     split='train',
         #                                                     encoding='integer',
         #                                                     max_len=256, batch_size=128)
         # Load the dataset
-        (X_train, _), (_, _) = mnist.load_data()
+        #(X_train, _), (_, _) = mnist.load_data()
 
         # Rescale -1 to 1
-        X_train = X_train / 127.5 - 1.
-        X_train = np.expand_dims(X_train, axis=3)
+        #X_train = X_train / 127.5 - 1.
+        #X_train = np.expand_dims(X_train, axis=3)
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
