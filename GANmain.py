@@ -55,7 +55,7 @@ import numpy as np
 #/home/user/TCY/holstep
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
-                           '/home/user/TCY/holstep',
+                           '/Users/chenyangtang/python/holstep',
                            'Directory where the raw data is located.')
 tf.app.flags.DEFINE_string('logdir',
                            '/tmp/hol',
@@ -192,8 +192,9 @@ tf.app.flags.DEFINE_integer('data_parsing_workers', 4,
 class DCGAN():
     def __init__(self):
         # Input shape
-        self.img_shape = (None,512)
+        #self.img_shape = (512,)
         self.latent_dim = 100
+        self.input_dim = 512
         self.voc_size = 0
 
         optimizer = Adam(0.0002, 0.5)
@@ -215,7 +216,7 @@ class DCGAN():
         # The generator takes noise as input and generates imgs
         z = Input(shape=(512,))
         img = self.generator(z)
-        print("im", img.get_shape().as_list())
+
 
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
@@ -233,7 +234,7 @@ class DCGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(input_dim=87,output_dim=256, input_length=FLAGS.max_len))
+        model.add(Embedding(input_dim=87,output_dim=self.input_dim, input_length=FLAGS.max_len))
         #model.add(Dense(256*3, activation="relu"))
         #model.add(Reshape((3, 256)))
         #model.add(UpSampling2D())
@@ -250,7 +251,7 @@ class DCGAN():
         model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(Conv1D(256, kernel_size=7, activation='relu'))
+        model.add(Conv1D(512, kernel_size=7, activation='relu'))
         model.add(GlobalMaxPooling1D())
         #model.add(Activation("tanh"))
 
@@ -270,20 +271,18 @@ class DCGAN():
         # img = layers.Dropout(dropout)(x)
         #prediction = layers.Dense(1, activation='sigmoid')(x)
 
-        noise = Input(shape=(100,))
+        noise = Input(shape=(512,))
         print(noise.get_shape().as_list())
         img = model(noise)
 
-        model = Model(noise, img)
-        return model
+        return Model(noise, img)
 
-        #return Model(noise, img)
 
     def build_discriminator(self):
 
         model = Sequential()
 
-        model.add(Embedding(input_dim=87,output_dim=256,input_length=FLAGS.max_len))
+        model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=FLAGS.max_len))
         #model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
         model.add(Conv1D(256, kernel_size=7, activation='relu'))
         #model.add(LeakyReLU(alpha=0.2))
@@ -308,7 +307,7 @@ class DCGAN():
         model.summary()
 
         img = Input(shape=(512,))
-        print(img.get_shape().as_list())
+        #print(img.get_shape().as_list())
         validity = model(img)
 
         return Model(img, validity)
@@ -333,10 +332,10 @@ class DCGAN():
 
         for epoch in range(epochs):
             X_train, _ = self.parser.draw_random_batch_of_steps(
-                'train', 'integer', 256, 128)
+                'train', 'integer', 512, 128)
             self.voc_size = len(self.parser.vocabulary) + 1
             #X_train = X_train / 86.5 - 1.
-            X_train = np.expand_dims(X_train, axis=2)
+            #X_train = np.expand_dims(X_train, axis=2)
             print("1",X_train,"2",len(X_train))
             # ---------------------
             #  Train Discriminator
@@ -345,20 +344,19 @@ class DCGAN():
             # Select a random half of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
-
+            
             # Sample noise and generate a batch of new images
             #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-            noise = tf.truncated_normal(shape=[batch_size, self.latent_dim], mean=43.5, stddev=22.75,dtype=tf.float32)
-            noise = tf.cast(noise, tf.float32)
+            noise = tf.truncated_normal(shape=[batch_size, self.input_dim], mean=43, stddev=21.5,dtype=tf.float32)
+
             with tf.Session():
                 noise_np = noise.eval()
-            print(noise_np)
-
-            gen_imgs = self.generator.predict(noise)
-
+        
+            gen_imgs = self.generator.predict(noise_np)
+            print(imgs.shape,"+++++++++++++++++",gen_imgs.shape)
             # Train the discriminator (real classified as ones and generated as zeros)
-            d_loss_real = self.discriminator().train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator().train_on_batch(gen_imgs, fake)
+            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -366,7 +364,7 @@ class DCGAN():
             # ---------------------
 
             # Train the generator (wants discriminator to mistake images as real)
-            g_loss = self.combined.train_on_batch(noise, valid)
+            g_loss = self.combined.train_on_batch(noise_np, valid)
 
             # Plot the progress
             print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
