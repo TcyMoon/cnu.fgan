@@ -39,7 +39,7 @@ import data_utils
 import unconditioned_classification_models
 
 from keras.datasets import mnist
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, LSTM
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D,Conv1D,MaxPooling1D
@@ -53,6 +53,7 @@ import sys
 #
 import numpy as np
 #/home/user/TCY/holstep
+#/Users/chenyangtang/python/holstep
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
                            '/Users/chenyangtang/python/holstep',
@@ -189,11 +190,11 @@ tf.app.flags.DEFINE_integer('data_parsing_workers', 4,
 
 
 #
-class DCGAN():
+class PreGAN():
     def __init__(self):
         # Input shape
         #self.img_shape = (512,)
-        self.latent_dim = 100
+        self.latent_dim = 87
         self.input_dim = 512
         self.voc_size = 0
 
@@ -214,7 +215,7 @@ class DCGAN():
         self.generator = self.build_generator()
 
         # The generator takes noise as input and generates imgs
-        z = Input(shape=(512,))
+        z = Input(shape=(self.latent_dim,))
         img = self.generator(z)
 
 
@@ -238,22 +239,23 @@ class DCGAN():
         #model.add(Dense(256*3, activation="relu"))
         #model.add(Reshape((3, 256)))
         #model.add(UpSampling2D())
-        model.add(Conv1D(256, kernel_size=7,activation='relu'))
+        model.add(Conv1D(256, kernel_size=3,activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         model.add(MaxPooling1D(3))
         #model.add(UpSampling1D())
-        model.add(Conv1D(256, kernel_size=7, activation='relu'))
+        model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         #model.add(MaxPooling1D(5))
-        model.add(Conv1D(256, kernel_size=7, activation='relu'))
+        model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(Conv1D(512, kernel_size=7, activation='relu'))
+        model.add(LSTM(256))
+        model.add(Conv1D(512, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
-        #model.add(Activation("tanh"))
+        model.add(Activation("relu"))
 
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
@@ -271,8 +273,8 @@ class DCGAN():
         # img = layers.Dropout(dropout)(x)
         #prediction = layers.Dense(1, activation='sigmoid')(x)
 
-        noise = Input(shape=(512,))
-        print(noise.get_shape().as_list())
+        noise = Input(shape=(self.latent_dim,))
+        
         img = model(noise)
 
         return Model(noise, img)
@@ -282,26 +284,30 @@ class DCGAN():
 
         model = Sequential()
 
-        model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=FLAGS.max_len))
-        #model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
-        model.add(Conv1D(256, kernel_size=7, activation='relu'))
+        #model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
+        model.add(Dense(self.input_dim * 87, activation="relu", input_shape=(self.input_dim,)))
+        model.add(Reshape((87, self.input_dim)))
+        model.add(Conv1D(256, kernel_size=5, input_shape = (self.input_dim,),activation='relu'))
         #model.add(LeakyReLU(alpha=0.2))
         #model.add(Dropout(0.25))
-        model.add(MaxPooling1D(3))
-        model.add(Conv1D(256, kernel_size=7, padding="same"))
+        #model.add(MaxPooling1D(3))
+        model.add(Dropout(0.25))
+        model.add(Conv1D(128, kernel_size=3, padding="same"))
         #model.add(ZeroPadding1D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv1D(256, kernel_size=7, padding="same"))
+        model.add(Conv1D(64, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv1D(256, kernel_size=7, padding="same"))
+
+        model.add(Conv1D(32, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(Flatten())
+        model.add(LSTM(32))
         model.add(Dense(1, activation='sigmoid'))
 
         model.summary()
@@ -309,7 +315,7 @@ class DCGAN():
         img = Input(shape=(512,))
         #print(img.get_shape().as_list())
         validity = model(img)
-
+        model.save('myDiscriminator_model.h5')
         return Model(img, validity)
 
     def train(self, epochs, batch_size, save_interval=50):
@@ -336,8 +342,6 @@ class DCGAN():
             self.voc_size = len(self.parser.vocabulary) + 1
             #X_train = X_train / 86.5 - 1.
             #X_train = np.expand_dims(X_train, axis=2)
-            print("1",X_train,"2",len(X_train))
-            # ---------------------
             #  Train Discriminator
             # ---------------------
 
@@ -347,31 +351,32 @@ class DCGAN():
             
             # Sample noise and generate a batch of new images
             #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-            noise = tf.truncated_normal(shape=[batch_size, self.input_dim], mean=43, stddev=21.5,dtype=tf.float32)
+            noise = tf.truncated_normal(shape=[batch_size, self.latent_dim], mean=43, stddev=21.5,dtype=tf.float32)
 
             with tf.Session():
                 noise_np = noise.eval()
         
             gen_imgs = self.generator.predict(noise_np)
-            print(imgs.shape,"+++++++++++++++++",gen_imgs.shape)
             # Train the discriminator (real classified as ones and generated as zeros)
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-
+            
             # ---------------------
             #  Train Generator
             # ---------------------
 
             # Train the generator (wants discriminator to mistake images as real)
+            
             g_loss = self.combined.train_on_batch(noise_np, valid)
+            #g_loss = self.combined.evaluate(noise_np,valid,32)
 
             # Plot the progress
             print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
             # If at save interval => save generated image samples
-            if epoch % save_interval == 0:
-                self.save_imgs(epoch)
+            #if epoch % save_interval == 0:
+            #self.save_imgs(epoch)
 
     # def save_imgs(self, epoch):
     #     r, c = 5, 5
@@ -393,5 +398,5 @@ class DCGAN():
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN()
-    dcgan.train(epochs=4000, batch_size=32, save_interval=50)
+    pregan = PreGAN()
+    pregan.train(epochs=4000, batch_size=32, save_interval=50)

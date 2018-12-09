@@ -195,10 +195,10 @@ class DataParser(object):
     while len(steps) < batch_size:
       name = random.choice(all_conjectures.keys())
       conjecture = all_conjectures[name]
-      if labels[i]:
-        conjecture_steps = conjecture['+']
-      else:
-        conjecture_steps = conjecture['-']
+      #if labels[i]:
+      conjecture_steps = conjecture['+']
+      #else:
+        #conjecture_steps = conjecture['-']
       if not conjecture_steps:
         continue
       step = random.choice(conjecture_steps)

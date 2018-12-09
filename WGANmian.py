@@ -308,7 +308,7 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        
+        model.add(Flatten())
         model.add(LSTM(32))
         #model.add(Dense(1, activation='sigmoid'))
 

@@ -1,33 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import json
-import logging
-import os
 import keras
-import tensorflow as tf
-
-import conditioned_classification_models
 import data_utils
-import unconditioned_classification_models
-
-from keras.datasets import mnist
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
-from keras.models import Sequential, Model
-from keras.optimizers import Adam
-import matplotlib.pyplot as plt
-import sys
-import os
-#
-import numpy as np
-
+from keras.models import load_model
+import tensorflow as tf
+#/home/user/TCY/holstep
+#/Users/chenyangtang/python/holstep
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
-                           '/Users/chenyangtang/python/holstep',
+                           '/home/user/TCY/holstep',
                            'Directory where the raw data is located.')
 tf.app.flags.DEFINE_string('logdir',
                            '/tmp/hol',
@@ -64,16 +43,27 @@ tf.app.flags.DEFINE_integer('data_parsing_workers', 4,
                             'Number of threads to use to generate input data.')
 
 
-def main():
-    print("start")
-    parser = data_utils.DataParser(FLAGS.source_dir,
-                                           use_tokens=False,
-                                           verbose=FLAGS.verbose)
-    print (2)
-    X_train, _ = parser.draw_random_batch_of_steps(
-              'train', 'integer', FLAGS.max_len, FLAGS.batch_size)
-    print (2)
-    print(X_train)
 
-if __name__ == '__main__':
-    main()
+parser = data_utils.DataParser(FLAGS.source_dir,
+                                       use_tokens=False,
+                                       verbose=FLAGS.verbose)
+
+conj_index, step_index, total = 0, 0, 0
+epoch =100000
+num = 0
+
+model = load_model('myDiscriminator_model.h5')
+
+model.compile(optimizer=keras.optimizers.RMSprop(lr=0.0001),
+                  loss='binary_crossentropy',
+                  metrics=['acc'])
+for i in range(epoch):
+    (X_val, _), (conj_index, step_index)= parser.draw_batch_of_steps_in_order(
+        conj_index, step_index, 'val', 'integer', 512, 128)
+    each = sum(model.predict_on_batch(X_val)/128)
+    total = total + each
+    num = num + 1
+    #print (conj_index, step_index)
+    print('the',num,'time:',each)
+print('totla acc:',total/epoch)
+
