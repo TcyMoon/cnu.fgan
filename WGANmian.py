@@ -42,7 +42,7 @@ from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, LSTM
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D,Conv1D,MaxPooling1D
+from keras.layers.convolutional import UpSampling2D, Conv2D, Conv1D, MaxPooling1D
 from keras.layers.pooling import GlobalMaxPooling1D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
@@ -51,12 +51,13 @@ from keras.layers.embeddings import Embedding
 import sys
 #import mxnet
 #
+import keras.backend as K
 import numpy as np
 #/home/user/TCY/holstep
 #/Users/chenyangtang/python/holstep
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
-                           '/Users/chenyangtang/python/holstep',
+                           '/home/user/TCY/holstep',
                            'Directory where the raw data is located.')
 tf.app.flags.DEFINE_string('logdir',
                            '/tmp/hol',
@@ -197,18 +198,17 @@ class PreGAN():
         self.latent_dim = 87
         self.input_dim = 512
         self.voc_size = 0
-
+        self.clip_value = 0.01
         optimizer = Adam(0.0002, 0.5)
         self.parser = data_utils.DataParser(FLAGS.source_dir,
-                                       use_tokens=False,
-                                       verbose=FLAGS.verbose)
-
+                                            use_tokens=False,
+                                            verbose=FLAGS.verbose)
 
         # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss=self.wasserstein_loss,
-            optimizer=optimizer,
-            metrics=['accuracy'])
+                                   optimizer=optimizer,
+                                   metrics=['accuracy'])
 
         print("+++++++++++++++")
         # Build the generator
@@ -218,17 +218,18 @@ class PreGAN():
         z = Input(shape=(self.latent_dim,))
         img = self.generator(z)
 
-
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
 
-        # The discriminator takes generated images as input and determines validity
+        # The discriminator takes generated images as input and determines
+        # validity
         valid = self.discriminator(img)
 
         # The combined model  (stacked generator and discriminator)
         # Trains the generator to fool the discriminator
         self.combined = Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
+
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
 
@@ -237,28 +238,29 @@ class PreGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(input_dim=87,output_dim=self.input_dim, input_length=FLAGS.max_len))
+        model.add(Embedding(input_dim=87, output_dim=self.input_dim,
+                            input_length=FLAGS.max_len))
         #model.add(Dense(256*3, activation="relu"))
         #model.add(Reshape((3, 256)))
-        #model.add(UpSampling2D())
-        model.add(Conv1D(256, kernel_size=3,activation='relu'))
+        # model.add(UpSampling2D())
+        model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
-        #model.add(Activation("relu"))
+        # model.add(Activation("relu"))
         model.add(MaxPooling1D(3))
-        #model.add(UpSampling1D())
+        # model.add(UpSampling1D())
         model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
-        #model.add(Activation("relu"))
-        #model.add(MaxPooling1D(5))
-        model.add(Conv1D(256, kernel_size=3, activation='relu'))
-        model.add(BatchNormalization(momentum=0.8))
-        #model.add(Activation("relu"))
+        # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(LSTM(256))
+        model.add(Conv1D(256, kernel_size=3, activation='relu'))
+        model.add(BatchNormalization(momentum=0.8))
+        # model.add(Activation("relu"))
+        # model.add(MaxPooling1D(5))
+
         model.add(Conv1D(512, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
         model.add(Activation("relu"))
-
+        #model.add(LSTM(256))
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
         # x = layers.Embedding(
@@ -281,21 +283,22 @@ class PreGAN():
 
         return Model(noise, img)
 
-
     def build_discriminator(self):
 
         model = Sequential()
 
-        #model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
-        model.add(Dense(self.input_dim * 87, activation="relu", input_shape=(self.input_dim,)))
+        # model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
+        model.add(Dense(self.input_dim * 87, activation="relu",
+                        input_shape=(self.input_dim,)))
         model.add(Reshape((87, self.input_dim)))
-        model.add(Conv1D(256, kernel_size=5, input_shape = (self.input_dim,),activation='relu'))
-        #model.add(LeakyReLU(alpha=0.2))
-        #model.add(Dropout(0.25))
-        #model.add(MaxPooling1D(3))
+        model.add(Conv1D(256, kernel_size=5, input_shape=(
+            self.input_dim,), activation='relu'))
+        # model.add(LeakyReLU(alpha=0.2))
+        # model.add(Dropout(0.25))
+        # model.add(MaxPooling1D(3))
         model.add(Dropout(0.25))
         model.add(Conv1D(128, kernel_size=3, padding="same"))
-        #model.add(ZeroPadding1D(padding=((0,1),(0,1))))
+        # model.add(ZeroPadding1D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -308,14 +311,16 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Flatten())
         model.add(LSTM(32))
+        #model.add(Flatten())
+
+        model.add(Dense(1))
         #model.add(Dense(1, activation='sigmoid'))
 
         model.summary()
 
         img = Input(shape=(512,))
-        #print(img.get_shape().as_list())
+        # print(img.get_shape().as_list())
         validity = model(img)
         model.save('myDiscriminator_model.h5')
         return Model(img, validity)
@@ -332,7 +337,6 @@ class PreGAN():
 
         # Rescale -1 to 1
 
-
         # Adversarial ground truths
 
         valid = np.ones((batch_size, 1))
@@ -341,6 +345,7 @@ class PreGAN():
         for epoch in range(epochs):
             X_train, _ = self.parser.draw_random_batch_of_steps(
                 'train', 'integer', 512, 128)
+            
             self.voc_size = len(self.parser.vocabulary) + 1
             #X_train = X_train / 86.5 - 1.
             #X_train = np.expand_dims(X_train, axis=2)
@@ -353,32 +358,41 @@ class PreGAN():
 
             # Sample noise and generate a batch of new images
             #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-            noise = tf.truncated_normal(shape=[batch_size, self.latent_dim], mean=43, stddev=21.5,dtype=tf.float32)
+            noise = tf.truncated_normal(
+                shape=[batch_size, self.latent_dim], mean=43, stddev=21.5, dtype=tf.float32)
 
             with tf.Session():
                 noise_np = noise.eval()
 
             gen_imgs = self.generator.predict(noise_np)
-            # Train the discriminator (real classified as ones and generated as zeros)
+            # Train the discriminator (real classified as ones and generated as
+            # zeros)
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+
+            for l in self.discriminator.layers:
+                weights = l.get_weights()
+                weights = [np.clip(w, -self.clip_value,self.clip_value) for w in weights]
+                l.set_weights(weights)
 
             # ---------------------
             #  Train Generator
             # ---------------------
 
-            # Train the generator (wants discriminator to mistake images as real)
+            # Train the generator (wants discriminator to mistake images as
+            # real)
 
             g_loss = self.combined.train_on_batch(noise_np, valid)
             #g_loss = self.combined.evaluate(noise_np,valid,32)
 
             # Plot the progress
-            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" %
+                   (epoch, d_loss[0], 100 * d_loss[1], g_loss))
 
             # If at save interval => save generated image samples
-            #if epoch % save_interval == 0:
-            #self.save_imgs(epoch)
+            # if epoch % save_interval == 0:
+            # self.save_imgs(epoch)
 
     # def save_imgs(self, epoch):
     #     r, c = 5, 5
