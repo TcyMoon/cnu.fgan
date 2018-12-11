@@ -240,8 +240,7 @@ class PreGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(input_dim=87, output_dim=self.input_dim,
-                            input_length=FLAGS.max_len))
+        model.add(Embedding(input_dim=87, output_dim=self.input_dim,input_length=FLAGS.max_len))
         #model.add(Dense(256*3, activation="relu"))
         #model.add(Reshape((3, 256)))
         # model.add(UpSampling2D())
@@ -290,8 +289,7 @@ class PreGAN():
         model = Sequential()
 
         # model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
-        model.add(Dense(self.input_dim * 87, activation="relu",
-                        input_shape=(self.input_dim,)))
+        model.add(Dense(self.input_dim * 87, activation="relu",input_shape=(self.input_dim,)))
         model.add(Reshape((87, self.input_dim)))
         model.add(Conv1D(256, kernel_size=5, input_shape=(
             self.input_dim,), activation='relu'))
