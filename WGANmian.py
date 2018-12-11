@@ -50,7 +50,8 @@ from keras.layers.embeddings import Embedding
 #import matplotlib.pyplot as plt
 import sys
 #import mxnet
-#
+from keras.optimizers import RMSprop
+
 import keras.backend as K
 import numpy as np
 #/home/user/TCY/holstep
@@ -228,7 +229,7 @@ class PreGAN():
         # The combined model  (stacked generator and discriminator)
         # Trains the generator to fool the discriminator
         self.combined = Model(z, valid)
-        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.combined.compile(loss=self.wasserstein_loss, optimizer=optimizer)
 
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
