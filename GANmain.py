@@ -348,20 +348,20 @@ class PreGAN():
             # Select a random half of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
-            
+
             # Sample noise and generate a batch of new images
             #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
             noise = tf.truncated_normal(shape=[batch_size, self.latent_dim], mean=43, stddev=21.5,dtype=tf.float32)
 
             with tf.Session():
                 noise_np = noise.eval()
-        
+
             gen_imgs = self.generator.predict(noise_np)
             # Train the discriminator (real classified as ones and generated as zeros)
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-            
+
             # ---------------------
             #  Train Generator
             # ---------------------
