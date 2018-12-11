@@ -199,7 +199,7 @@ class PreGAN():
         self.input_dim = 512
         self.voc_size = 0
         self.clip_value = 0.01
-        optimizer = Adam(0.0002, 0.5)
+        optimizer = RMSprop(lr=0.00005)
         self.parser = data_utils.DataParser(FLAGS.source_dir,
                                             use_tokens=False,
                                             verbose=FLAGS.verbose)
