@@ -145,7 +145,7 @@ class WGAN():
                 # Train the critic
                 d_loss_real = self.critic.train_on_batch(imgs, valid)
                 d_loss_fake = self.critic.train_on_batch(gen_imgs, fake)
-                d_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
+                d_loss = 0.5 * np.add(d_loss_real,d_loss_fake)
 
                 # Clip critic weights
                 for l in self.critic.layers:

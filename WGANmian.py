@@ -340,16 +340,18 @@ class PreGAN():
 
         # Adversarial ground truths
 
-        valid = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        #valid = np.ones((batch_size, 1))
+        #fake = np.zeros((batch_size, 1))
+        valid = -np.ones((batch_size, 1))
+        fake = np.ones((batch_size, 1))
 
         for epoch in range(epochs):
             X_train, _ = self.parser.draw_random_batch_of_steps(
                 'train', 'integer', 512, 128)
             
             self.voc_size = len(self.parser.vocabulary) + 1
-            #X_train = X_train / 86.5 - 1.
-            #X_train = np.expand_dims(X_train, axis=2)
+            X_train = X_train / 86.5 - 1.
+            X_train = np.expand_dims(X_train, axis=2)
             #  Train Discriminator
             # ---------------------
 
