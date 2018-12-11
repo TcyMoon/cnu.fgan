@@ -261,7 +261,7 @@ class PreGAN():
 
         model.add(Conv1D(512, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
-        model.add(Activation("relu"))
+        model.add(Activation("tanh"))
         #model.add(LSTM(256))
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
