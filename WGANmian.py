@@ -350,7 +350,8 @@ class PreGAN():
                 'train', 'integer', 512, 128)
             
             self.voc_size = len(self.parser.vocabulary) + 1
-            X_train = X_train / 86.5 - 1.
+            X_train = (X_train.astype(np.float32) - 86.5) / 86.5
+            print(X_train)
             X_train = np.expand_dims(X_train, axis=2)
             #  Train Discriminator
             # ---------------------
