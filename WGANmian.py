@@ -197,7 +197,7 @@ class PreGAN():
         # Input shape
         #self.img_shape = (512,)
         self.latent_dim = 87
-        self.input_dim = 512
+        self.input_dim = 256
         self.n_critic = 5
         self.voc_size = 0
         self.clip_value = 0.01
@@ -257,11 +257,10 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(LSTM(256))
         model.add(Conv1D(512, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
         model.add(Activation("tanh"))
-
+        model.add(LSTM(256))
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
         # x = layers.Embedding(
@@ -311,7 +310,7 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(LSTM(32))
+        model.add(LSTM(256))
         #model.add(Flatten())
 
         model.add(Dense(1))
