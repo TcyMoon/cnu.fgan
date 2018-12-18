@@ -22,7 +22,7 @@ python main.py \
 --logdir=experiments/cnn_2x_siamese_experiment \
 --source_dir=~/Downloads/holstep
 """
-#!/usr/bin/python
+# !/usr/bin/python
 # coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
@@ -47,15 +47,16 @@ from keras.layers.pooling import GlobalMaxPooling1D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.layers.embeddings import Embedding
-#import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import sys
-#import mxnet
+# import mxnet
 from keras.optimizers import RMSprop
 
 import keras.backend as K
 import numpy as np
-#/home/user/TCY/holstep
-#/Users/chenyangtang/python/holstep
+
+# /home/user/TCY/holstep
+# /Users/chenyangtang/python/holstep
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('source_dir',
                            '/home/user/TCY/holstep',
@@ -195,9 +196,9 @@ tf.app.flags.DEFINE_integer('data_parsing_workers', 4,
 class PreGAN():
     def __init__(self):
         # Input shape
-        #self.img_shape = (512,)
+        # self.img_shape = (512,)
         self.latent_dim = 87
-        self.input_dim = 256
+        self.input_dim = 512
         self.n_critic = 5
         self.voc_size = 0
         self.clip_value = 0.01
@@ -240,27 +241,27 @@ class PreGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(input_dim=87, output_dim=self.input_dim,input_length=FLAGS.max_len))
-        #model.add(Dense(256*3, activation="relu"))
-        #model.add(Reshape((3, 256)))
+        model.add(Embedding(input_dim=87, output_dim=self.input_dim, input_length=FLAGS.max_len))
+        # model.add(Dense(256*3, activation="relu"))
+        # model.add(Reshape((3, 256)))
         # model.add(UpSampling2D())
         model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         # model.add(Activation("relu"))
         model.add(MaxPooling1D(3))
         # model.add(UpSampling1D())
-        model.add(Conv1D(256, kernel_size=3, activation='relu'))
+        model.add(Conv1D(128, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(Conv1D(256, kernel_size=3, activation='relu'))
+        model.add(Conv1D(64, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
         # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(Conv1D(512, kernel_size=3, activation='relu'))
+        model.add(Conv1D(32, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
         model.add(Activation("tanh"))
-        model.add(LSTM(256))
+        # model.add(LSTM(32))
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
         # x = layers.Embedding(
@@ -275,7 +276,7 @@ class PreGAN():
         #
         # x = layers.Dense(256, activation='relu')(embedded_statement)
         # img = layers.Dropout(dropout)(x)
-        #prediction = layers.Dense(1, activation='sigmoid')(x)
+        # prediction = layers.Dense(1, activation='sigmoid')(x)
 
         noise = Input(shape=(self.latent_dim,))
 
@@ -288,33 +289,33 @@ class PreGAN():
         model = Sequential()
 
         # model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
-        model.add(Dense(self.input_dim * 87, activation="relu",input_shape=(self.input_dim,)))
+        model.add(Dense(self.input_dim * 87, activation="relu", input_shape=(self.input_dim,)))
         model.add(Reshape((87, self.input_dim)))
-        model.add(Conv1D(256, kernel_size=5, input_shape=(
+        model.add(Conv1D(32, kernel_size=5, input_shape=(
             self.input_dim,), activation='relu'))
         # model.add(LeakyReLU(alpha=0.2))
         # model.add(Dropout(0.25))
         # model.add(MaxPooling1D(3))
         model.add(Dropout(0.25))
-        model.add(Conv1D(128, kernel_size=3, padding="same"))
+        model.add(Conv1D(64, kernel_size=3, padding="same"))
         # model.add(ZeroPadding1D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv1D(64, kernel_size=3, padding="same"))
+        model.add(Conv1D(128, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
 
-        model.add(Conv1D(32, kernel_size=3, padding="same"))
+        model.add(Conv1D(256, kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(LSTM(256))
-        #model.add(Flatten())
+        # model.add(Flatten())
 
         model.add(Dense(1))
-        #model.add(Dense(1, activation='sigmoid'))
+        # model.add(Dense(1, activation='sigmoid'))
 
         model.summary()
 
@@ -332,35 +333,35 @@ class PreGAN():
         #                                                     encoding='integer',
         #                                                     max_len=256, batch_size=128)
         # Load the dataset
-        #(X_train, _), (_, _) = mnist.load_data()
+        # (X_train, _), (_, _) = mnist.load_data()
 
         # Rescale -1 to 1
 
         # Adversarial ground truths
 
-        #valid = np.ones((batch_size, 1))
-        #fake = np.zeros((batch_size, 1))
+        # valid = np.ones((batch_size, 1))
+        # fake = np.zeros((batch_size, 1))
         valid = -np.ones((batch_size, 1))
         fake = np.ones((batch_size, 1))
 
         for epoch in range(epochs):
             X_train, _ = self.parser.draw_random_batch_of_steps(
                 'train', 'integer', 512, 128)
-            
+
             self.voc_size = len(self.parser.vocabulary) + 1
             X_train = (X_train.astype(np.float32) - 86.5) / 86.5
             print(X_train.shape)
-            #X_train = np.expand_dims(X_train, axis=2)
+            # X_train = np.expand_dims(X_train, axis=2)
             #  Train Discriminator
             # ---------------------
             for _ in range(self.n_critic):
 
-            # Select a random half of images
+                # Select a random half of images
                 idx = np.random.randint(0, X_train.shape[0], batch_size)
                 imgs = X_train[idx]
 
                 # Sample noise and generate a batch of new images
-                #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+                # noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
                 noise = tf.truncated_normal(
                     shape=[batch_size, self.latent_dim], mean=43, stddev=21.5, dtype=tf.float32)
 
@@ -376,7 +377,7 @@ class PreGAN():
 
                 for l in self.discriminator.layers:
                     weights = l.get_weights()
-                    weights = [np.clip(w, -self.clip_value,self.clip_value) for w in weights]
+                    weights = [np.clip(w, -self.clip_value, self.clip_value) for w in weights]
                     l.set_weights(weights)
 
             # ---------------------
@@ -387,33 +388,33 @@ class PreGAN():
             # real)
 
             g_loss = self.combined.train_on_batch(noise_np, valid)
-            #g_loss = self.combined.evaluate(noise_np,valid,32)
+            # g_loss = self.combined.evaluate(noise_np,valid,32)
 
             # Plot the progress
-            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" %
-                   (epoch, 1-d_loss[0], 100 * d_loss[1], 1-g_loss))
+            print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" %
+                  (epoch, 1 - d_loss[0], 100 * d_loss[1], 1 - g_loss))
 
             # If at save interval => save generated image samples
             # if epoch % save_interval == 0:
             # self.save_imgs(epoch)
 
-    # def save_imgs(self, epoch):
-    #     r, c = 5, 5
-    #     noise = np.random.normal(0, 1, (r * c, self.latent_dim))
-    #     gen_imgs = self.generator.predict(noise)
-    #
-    #     # Rescale images 0 - 1
-    #     gen_imgs = 0.5 * gen_imgs + 0.5
-    #
-    #     fig, axs = plt.subplots(r, c)
-    #     cnt = 0
-    #     for i in range(r):
-    #         for j in range(c):
-    #             axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
-    #             axs[i,j].axis('off')
-    #             cnt += 1
-    #     fig.savefig("images/mnist_%d.png" % epoch)
-    #     plt.close()
+            # def save_imgs(self, epoch):
+            #     r, c = 5, 5
+            #     noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+            #     gen_imgs = self.generator.predict(noise)
+            #
+            #     # Rescale images 0 - 1
+            #     gen_imgs = 0.5 * gen_imgs + 0.5
+            #
+            #     fig, axs = plt.subplots(r, c)
+            #     cnt = 0
+            #     for i in range(r):
+            #         for j in range(c):
+            #             axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+            #             axs[i,j].axis('off')
+            #             cnt += 1
+            #     fig.savefig("images/mnist_%d.png" % epoch)
+            #     plt.close()
 
 
 if __name__ == '__main__':
