@@ -62,7 +62,7 @@ tf.app.flags.DEFINE_string('source_dir',
                            '/home/user/TCY/holstep',
                            'Directory where the raw data is located.')
 tf.app.flags.DEFINE_string('logdir',
-                           '/tmp/hol',
+                           '/home/user/TCY/deepmath-master/deepmath/holstep_baselines/log',
                            'Base directory for saving models and metrics.')
 tf.app.flags.DEFINE_string('model_name',
                            'cnn_2x',
@@ -94,7 +94,6 @@ tf.app.flags.DEFINE_string('checkpoint_path',
                            'Path to checkpoint to (re)start from.')
 tf.app.flags.DEFINE_integer('data_parsing_workers', 4,
                             'Number of threads to use to generate input data.')
-
 
 # def main(_):
 #   logging.basicConfig(level=logging.DEBUG)
@@ -232,6 +231,7 @@ class PreGAN():
         # Trains the generator to fool the discriminator
         self.combined = Model(z, valid)
         self.combined.compile(loss=self.wasserstein_loss, optimizer=optimizer)
+        #tensorboard_vis = keras.callbacks.TensorBoard(log_dir=FLAGS.logdir)
 
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
@@ -311,7 +311,7 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(LSTM(256))
+        #model.add(LSTM(256))
         # model.add(Flatten())
 
         model.add(Dense(1))
