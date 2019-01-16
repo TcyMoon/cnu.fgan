@@ -241,7 +241,7 @@ class PreGAN():
         model = Sequential()
         #
         #
-        model.add(Embedding(input_dim=87, output_dim=self.input_dim, input_length=FLAGS.max_len))
+        model.add(Embedding(input_dim=87, output_dim=256, input_length=self.input_dim))
         # model.add(Dense(256*3, activation="relu"))
         # model.add(Reshape((3, 256)))
         # model.add(UpSampling2D())
@@ -259,9 +259,18 @@ class PreGAN():
         # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
         model.add(Conv1D(32, kernel_size=3, activation='relu'))
-        model.add(GlobalMaxPooling1D())
+        model.add(MaxPooling1D(3))
         model.add(Activation("tanh"))
         # model.add(LSTM(32))
+        model.add(Conv1D(64, kernel_size=3, activation='relu'))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv1D(128, kernel_size=3, activation='relu'))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv1D(256, kernel_size=3, activation='relu'))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv1D(512, kernel_size=3, activation='relu'))
+        model.add(BatchNormalization(momentum=0.8))
+
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
         # x = layers.Embedding(
@@ -290,9 +299,9 @@ class PreGAN():
 
         # model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
         model.add(Dense(self.input_dim * 87, activation="relu", input_shape=(self.input_dim,)))
-        model.add(Reshape((32*1392,-1)))
-        model.add(Conv1D(32, kernel_size=5, input_shape=(
-            self.input_dim,), activation='relu'))
+
+        model.add(Reshape((87*16,32)))
+        model.add(Conv1D(32, kernel_size=5,input_shape = (32,),activation='relu'))
         # model.add(LeakyReLU(alpha=0.2))
         # model.add(Dropout(0.25))
         # model.add(MaxPooling1D(3))
@@ -324,7 +333,7 @@ class PreGAN():
 
         model.summary()
 
-        img = Input(shape=(512,))
+        img = Input(shape=(self.input_dim,))
         # print(img.get_shape().as_list())
         validity = model(img)
         model.save('myDiscriminator_model.h5')
