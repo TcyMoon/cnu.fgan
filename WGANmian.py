@@ -290,7 +290,7 @@ class PreGAN():
 
         # model.add(Embedding(input_dim=87,output_dim=self.input_dim,input_length=input_dim))
         model.add(Dense(self.input_dim * 87, activation="relu", input_shape=(self.input_dim,)))
-        model.add(Reshape((87, self.input_dim)))
+        model.add(Reshape((32*1392,-1)))
         model.add(Conv1D(32, kernel_size=5, input_shape=(
             self.input_dim,), activation='relu'))
         # model.add(LeakyReLU(alpha=0.2))
@@ -308,6 +308,11 @@ class PreGAN():
         model.add(Dropout(0.25))
 
         model.add(Conv1D(256, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+
+        model.add(Conv1D(512,kernel_size=3, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
