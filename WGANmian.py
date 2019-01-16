@@ -259,7 +259,7 @@ class PreGAN():
         # model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
         model.add(Conv1D(32, kernel_size=3, activation='relu'))
-        model.add(MaxPooling1D(3))
+        #model.add(MaxPooling1D(3))
         model.add(Activation("tanh"))
         # model.add(LSTM(32))
         model.add(Conv1D(64, kernel_size=3, activation='relu'))
@@ -268,9 +268,9 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         model.add(Conv1D(256, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv1D(512, kernel_size=3, activation='relu'))
+        model.add(Conv1D(self.input_dim, kernel_size=3, activation='relu'))
         model.add(BatchNormalization(momentum=0.8))
-
+        model.add(GlobalMaxPooling1D())
         model.summary()
         # noise = layers.Input(shape=(max_len,), dtype='int32')
         # x = layers.Embedding(
