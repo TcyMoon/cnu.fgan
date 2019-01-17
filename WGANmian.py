@@ -373,7 +373,7 @@ class PreGAN():
                 # Select a random half of images
                 idx = np.random.randint(0, X_train.shape[0], batch_size)
                 imgs = X_train[idx]
-
+                print(X_train[idx].shape)
                 # Sample noise and generate a batch of new images
                 # noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
                 noise = tf.truncated_normal(

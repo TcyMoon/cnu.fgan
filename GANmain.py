@@ -252,7 +252,7 @@ class PreGAN():
         model.add(BatchNormalization(momentum=0.8))
         #model.add(Activation("relu"))
         # model.add(MaxPooling1D(5))
-        model.add(LSTM(256))
+        #model.add(LSTM(256))
         model.add(Conv1D(512, kernel_size=3, activation='relu'))
         model.add(GlobalMaxPooling1D())
         model.add(Activation("relu"))
@@ -307,7 +307,7 @@ class PreGAN():
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
         model.add(Flatten())
-        model.add(LSTM(32))
+        #model.add(LSTM(32))
         model.add(Dense(1, activation='sigmoid'))
 
         model.summary()
@@ -348,7 +348,7 @@ class PreGAN():
             # Select a random half of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
-
+            print(X_train[idx].shape)
             # Sample noise and generate a batch of new images
             #noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
             noise = tf.truncated_normal(shape=[batch_size, self.latent_dim], mean=43, stddev=21.5,dtype=tf.float32)
